@@ -1,17 +1,17 @@
-from flask import Flask, jsonify, request
+# from flask import Flask, jsonify, request
 
 from datetime import datetime, timedelta
 import re
 from difflib import get_close_matches
 from difflib import SequenceMatcher
 
-app = Flask(__name__)
+# app = Flask(__name__)
 
 
-@app.route("/api/get_arrival_date_from_publication_date", methods=['POST'])
-def get_arrival_date_from_publication_date():
-    jsonp = request.get_json()
-    params = jsonp["parameters_by_position"]
+# @app.route("/api/get_arrival_date_from_publication_date", methods=['POST'])
+def get_arrival_date_from_publication_date(params):
+    # jsonp = request.get_json()
+    # params = jsonp["parameters_by_position"]
     pub_date = params[0]
     arrival_date = params[1]
     arrival_day = extract_number_from_ocr_string(arrival_date)
@@ -29,14 +29,15 @@ def get_arrival_date_from_publication_date():
         ret = {'status': 0, 'value': arrival_date.strftime('%Y-%m-%d')}
     except Exception as e:
         ret = {'status': -1, 'message': str(e)}
-    
-    return jsonify(ret)
+
+    return ret
+    # return jsonify(ret)
 
 
-@app.route("/api/get_departure_date", methods=['POST'])
-def get_departure_date():
-    jsonp = request.get_json()
-    params = jsonp["parameters_by_position"]
+# @app.route("/api/get_departure_date", methods=['POST'])
+def get_departure_date(params):
+    # jsonp = request.get_json()
+    # params = jsonp["parameters_by_position"]
     pub_date = params[0]
     departure_date = params[1]
 
@@ -88,7 +89,8 @@ def get_departure_date():
     # Enhanced regex to match "1er juil", "15 avr.", etc.
     match = re.search(r'\b(?:le\s+)?(\d{1,2})(?:er|eme|e)?[.,]?\s+([a-zA-Zéèêàùûôçîïëœ.]+)', departure_date)
     if not match:
-        return jsonify({'status': -1, 'message': f"Unable to parse date from string: {departure_date}"})
+        return {'status': -1, 'message': f"Unable to parse date from string: {departure_date}"}
+        # return jsonify({'status': -1, 'message': f"Unable to parse date from string: {departure_date}"})
 
     day = int(match.group(1))
     raw_monthish = normalize(match.group(2))
@@ -104,7 +106,8 @@ def get_departure_date():
     else:
         close = get_close_matches(raw_monthish, normalized_months.keys(), n=1, cutoff=0.6)
         if not close:
-            return jsonify({'status': -1, 'message': f"Could not recognize the month from: {raw_monthish}"})
+            return {'status': -1, 'message': f"Could not recognize the month from: {raw_monthish}"}
+            # return jsonify({'status': -1, 'message': f"Could not recognize the month from: {raw_monthish}"})
         _, month_num = normalized_months[close[0]]
 
     try:
@@ -113,13 +116,14 @@ def get_departure_date():
     except Exception as e:
         ret = {'status': -1, 'message': str(e)}
 
-    return jsonify(ret)
+    return ret
+    # return jsonify(ret)
 
 
-@app.route("/api/get_duration_value", methods=['POST'])
-def get_duration_value():
-    jsonp = request.get_json()
-    params = jsonp["parameters_by_position"]
+# @app.route("/api/get_duration_value", methods=['POST'])
+def get_duration_value(params):
+    # jsonp = request.get_json()
+    # params = jsonp["parameters_by_position"]
     departure_date = params[0]
     arrival_date = params[1]
 
@@ -130,14 +134,15 @@ def get_duration_value():
         ret = {'status': 0, 'value': duration}
     except Exception as e:
         ret = {'status': -1, 'message': str(e)}
-    
-    return jsonify(ret)
+
+    return ret
+    # return jsonify(ret)
 
 
-@app.route("/api/get_quarantine", methods=['POST'])
-def get_quarantine():
-    jsonp = request.get_json()
-    params = jsonp["parameters_by_position"]
+# @app.route("/api/get_quarantine", methods=['POST'])
+def get_quarantine(params):
+    # jsonp = request.get_json()
+    # params = jsonp["parameters_by_position"]
     arrivees_text = params[0]
 
     print(params)
@@ -163,13 +168,14 @@ def get_quarantine():
     except Exception as e:
         ret = {'status': -1, 'message': str(e)}
 
-    return jsonify(ret)
+    return ret
+    # return jsonify(ret)
 
 
-@app.route("/api/get_port_of_call_list", methods=['POST'])
-def get_port_of_call_list():
-    jsonp = request.get_json()
-    params = jsonp["parameters_by_position"]
+# @app.route("/api/get_port_of_call_list", methods=['POST'])
+def get_port_of_call_list(params):
+    # jsonp = request.get_json()
+    # params = jsonp["parameters_by_position"]
     pub_date_str = params[0]
     first_departure_date_str = params[1]
     extracted_text = params[2]
@@ -179,7 +185,8 @@ def get_port_of_call_list():
     try:
         first_date = datetime.strptime(first_departure_date_str.strip(), "%Y-%m-%d")
     except Exception as e:
-        return jsonify({'status': -1, 'message': f"Invalid first_departure_date_str: {e}"})
+        return {'status': -1, 'message': f"Invalid first_departure_date_str: {e}"}
+        # return jsonify({'status': -1, 'message': f"Invalid first_departure_date_str: {e}"})
 
     french_months = {
         "janvier": 1, "février": 2, "mars": 3, "avril": 4,
@@ -248,7 +255,8 @@ def get_port_of_call_list():
                 else:
                     close = get_close_matches(norm_month, normalized_months.keys(), n=1, cutoff=0.6)
                     if not close:
-                        return jsonify({'status': -1, 'message': f"Unrecognized month in part: {raw_month}"})
+                        return {'status': -1, 'message': f"Unrecognized month in part: {raw_month}"}
+                        # return jsonify({'status': -1, 'message': f"Unrecognized month in part: {raw_month}"})
                     _, month = normalized_months[close[0]]
             else:
                 # No month string at all — if it's the first entry, fall back to first_departure_date
@@ -266,9 +274,11 @@ def get_port_of_call_list():
                     "port_of_call_departure_date": dep_date.strftime('%Y-%m-%d')
                 })
             except Exception as e:
-                return jsonify({'status': -1, 'message': str(e)})
+                return {'status': -1, 'message': str(e)}
+                # return jsonify({'status': -1, 'message': str(e)})
 
-    return jsonify({'status': 0, 'value': results})
+    return {'status': 0, 'value': results}
+    # return jsonify({'status': 0, 'value': results})
 
 
 def compose_date(date_in_ms: int) -> datetime:
@@ -298,5 +308,5 @@ def extract_number_from_ocr_string(ocr_str: str) -> int:
 
 
 
-if __name__ == "__main__":
-    app.run(debug=True)
+# if __name__ == "__main__":
+#     app.run(debug=True)
