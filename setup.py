@@ -10,6 +10,9 @@ setup(name='py_extractor_calculators',
     packages=['py_extractor_calculators'],
     py_modules=['sm'],
     install_requires=[
+        'datetime',
+        're',
+        'difflib'
     ],
     python_requires='>=3.9',
     zip_safe=False)
