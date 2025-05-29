@@ -6,3 +6,5 @@ py_extractor_calculators.egg-info/SOURCES.txt
 py_extractor_calculators.egg-info/dependency_links.txt
 py_extractor_calculators.egg-info/not-zip-safe
 py_extractor_calculators.egg-info/top_level.txt
+py_extractor_calculators/sm/__init__.py
+py_extractor_calculators/sm/sm_calculators.py

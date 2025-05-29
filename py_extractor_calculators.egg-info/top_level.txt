@@ -1,2 +1,2 @@
 py_extractor_calculators
-sm
+sm_calculators
