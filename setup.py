@@ -1,7 +1,7 @@
 from setuptools import setup
 
 setup(name='py_extractor_calculators',
-    version='0.0.1',
+    version='0.0.2',
     description='....... for PortADa project',
     author='PortADa team',
     author_email='jcbportada@gmail.com',
@@ -9,10 +9,6 @@ setup(name='py_extractor_calculators',
     url="https://github.com/portada-git/py_extractor_calculators",
     packages=['py_extractor_calculators'],
     py_modules=['sm'],
-    install_requires=[
-        'datetime',
-        're',
-        'difflib'
-    ],
+    install_requires=[],
     python_requires='>=3.9',
     zip_safe=False)

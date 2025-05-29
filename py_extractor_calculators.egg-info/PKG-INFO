@@ -1,0 +1,15 @@
+Metadata-Version: 2.4
+Name: py_extractor_calculators
+Version: 0.0.2
+Summary: ....... for PortADa project
+Home-page: https://github.com/portada-git/py_extractor_calculators
+Author: PortADa team
+Author-email: jcbportada@gmail.com
+License: MIT
+Requires-Python: >=3.9
+Dynamic: author
+Dynamic: author-email
+Dynamic: home-page
+Dynamic: license
+Dynamic: requires-python
+Dynamic: summary
