@@ -14,10 +14,20 @@ def get_arrival_date_from_publication_date(params):
     # params = jsonp["parameters_by_position"]
     pub_date = params[0]
     arrival_date = params[1]
-    arrival_day = extract_number_from_ocr_string(arrival_date)
 
     try:
         pub_date = compose_date(int(pub_date))
+        arrival_day = str(extract_number_from_ocr_string(arrival_date))
+    
+        if arrival_day == -1:
+            arrival_day = pub_date.day
+
+        # Check if arrival_day starts with '4' and has 2 digits
+        if len(arrival_day) == 2 and arrival_day.startswith('4'):
+            arrival_day = '1' + arrival_day[1]  # Change the first digit to '1'
+    
+        arrival_day = int(arrival_day)
+        
         if pub_date.day >= arrival_day:
             arrival_date = pub_date.replace(day=arrival_day)
         if pub_date.day < arrival_day:
@@ -86,13 +96,26 @@ def get_departure_date(params):
     # Add normalized French month names
     normalized_months = {normalize(k): (k, v) for k, v in french_months.items()}
 
+    # Normalize common OCR errors where '1er' is misread
+    departure_date = departure_date.lower().strip()
+
+    # Replace common OCR variants of '1er' with '1'
+    departure_date = re.sub(r'\b[ftl](?:er|eme|e)?\b', '1', departure_date)  # e.g. "fer", "ter", "ler"
+
+    # Replace '&' with '8'
+    departure_date = re.sub(r'\s*&\s*', '8 ', departure_date)
+
     # Enhanced regex to match "1er juil", "15 avr.", etc.
     match = re.search(r'\b(?:le\s+)?(\d{1,2})(?:er|eme|e)?[.,]?\s+([a-zA-Zéèêàùûôçîïëœ.]+)', departure_date)
     if not match:
-        return {'status': -1, 'message': f"Unable to parse date from string: {departure_date}"}
+        return {'status': -1, 'message': f"Unable to parse date from string: {departure_date}", 'value': departure_date}
         # return jsonify({'status': -1, 'message': f"Unable to parse date from string: {departure_date}"})
 
-    day = int(match.group(1))
+    day = match.group(1)
+    # Check if day starts with '4' and has 2 digits
+    if len(day) == 2 and day.startswith('4'):
+        day = '1' + day[1]  # Change the first digit to '1'
+    day = int(day)
     raw_monthish = normalize(match.group(2))
 
     # Step 1: Direct match for abbreviations
@@ -106,12 +129,15 @@ def get_departure_date(params):
     else:
         close = get_close_matches(raw_monthish, normalized_months.keys(), n=1, cutoff=0.6)
         if not close:
-            return {'status': -1, 'message': f"Could not recognize the month from: {raw_monthish}"}
+            return {'status': -1, 'message': f"Could not recognize the month from: {raw_monthish}", 'value': raw_monthish}
             # return jsonify({'status': -1, 'message': f"Could not recognize the month from: {raw_monthish}"})
         _, month_num = normalized_months[close[0]]
 
     try:
-        departure_date = datetime(year=pub_date.year, month=month_num, day=day)
+        year = pub_date.year
+        if month_num > pub_date.month:
+            year = pub_date.year-1
+        departure_date = datetime(year=year, month=month_num, day=day)
         ret = {'status': 0, 'value': departure_date.strftime('%Y-%m-%d')}
     except Exception as e:
         ret = {'status': -1, 'message': str(e)}
@@ -144,8 +170,6 @@ def get_quarantine(params):
     # jsonp = request.get_json()
     # params = jsonp["parameters_by_position"]
     arrivees_text = params[0]
-
-    print(params)
 
     # Normalize input
     text = arrivees_text.lower().strip()
@@ -185,7 +209,7 @@ def get_port_of_call_list(params):
     try:
         first_date = datetime.strptime(first_departure_date_str.strip(), "%Y-%m-%d")
     except Exception as e:
-        return {'status': -1, 'message': f"Invalid first_departure_date_str: {e}"}
+        return {'status': -1, 'message': f"Invalid first_departure_date_str: {e}", 'value': first_departure_date_str}
         # return jsonify({'status': -1, 'message': f"Invalid first_departure_date_str: {e}"})
 
     french_months = {
@@ -230,7 +254,15 @@ def get_port_of_call_list(params):
         if not part:
             continue
 
-        match = re.match(r'([A-Za-zÉéèêîôçàù\s\-]+)\.?[\s,]+(\d{1,2})(?:er|eme|e)?[\s]+([a-zA-Zéèêàùûôçîïëœ.]+)(?:\s*;\s*([A-Za-zÉéèêîôçàù\s\-]+)\.?[\s,]+(\d{1,2})(?:er|eme|e)?[\s]+([a-zA-Zéèêàùûôçîïëœ.]+))?', part)
+        # Normalize common OCR errors where '1er' is misread
+        part = part.lower().strip()
+    
+        # Replace common OCR variants of '1er' with '1'
+        part = re.sub(r'\b[ftl](?:er|eme|e)?\b', '1', part)  # e.g. "fer", "ter", "ler"
+
+        # Replace '&' with '8'
+        part = re.sub(r'\s*&\s*', '8 ', part)
+        match = re.match(r'([A-Za-zÉéèêîôçàù\s\-]+)\.?[\s,]+(\d{1,2})[\s]+([a-zA-Zéèêàùûôçîïëœ.]+)(?:\s*;\s*([A-Za-zÉéèêîôçàù\s\-]+)\.?[\s,]+(\d{1,2})[\s]+([a-zA-Zéèêàùûôçîïëœ.]+))?', part)
 
         if match:
             place = match.group(1).strip()
@@ -255,7 +287,7 @@ def get_port_of_call_list(params):
                 else:
                     close = get_close_matches(norm_month, normalized_months.keys(), n=1, cutoff=0.6)
                     if not close:
-                        return {'status': -1, 'message': f"Unrecognized month in part: {raw_month}"}
+                        return {'status': -1, 'message': f"Unrecognized month in part: {raw_month}", 'value': raw_month}
                         # return jsonify({'status': -1, 'message': f"Unrecognized month in part: {raw_month}"})
                     _, month = normalized_months[close[0]]
             else:
@@ -298,8 +330,20 @@ def compose_date(date_in_ms: int) -> datetime:
 
 def extract_number_from_ocr_string(ocr_str: str) -> int:
     """
-    Extracts the first integer from a string, e.g. "Du 6." -> 6
+    Extracts the first integer from an OCR string.
+    Corrects common OCR misreadings of '1er' like 'fer', 'ter', or 'ler'.
+    E.g., "Du fer" or "Du 6." → returns 1 or 6 respectively.
     """
+    # Normalize common OCR errors where '1er' is misread
+    ocr_str = ocr_str.lower().strip()
+    
+    # Replace common OCR variants of '1er' with '1'
+    ocr_str = re.sub(r'\b[ftl]er\b', '1', ocr_str)  # e.g. "fer", "ter", "ler"
+
+    # Replace '&' with '8' 
+    ocr_str = re.sub(r'\s*&\s*', '8 ', ocr_str)
+    
+    # Now extract the first number
     match = re.search(r'\d+', ocr_str)
     if match:
         return int(match.group())
