@@ -1,55 +1,44 @@
-# from flask import Flask, jsonify, request
-
 from datetime import datetime, timedelta
 import re
 from difflib import get_close_matches
 from difflib import SequenceMatcher
 
-# app = Flask(__name__)
 
-
-# @app.route("/api/get_arrival_date_from_publication_date", methods=['POST'])
 def get_arrival_date_from_publication_date(params):
-    # jsonp = request.get_json()
-    # params = jsonp["parameters_by_position"]
     pub_date = params[0]
     arrival_date = params[1]
 
     try:
         pub_date = compose_date(int(pub_date))
-        arrival_day = str(extract_number_from_ocr_string(arrival_date))
+        arrival_day = extract_number_from_ocr_string(arrival_date)
     
         if arrival_day == -1:
-            arrival_day = pub_date.day
+            ret = {'status': -1, 'value': arrival_date}
+            return ret
 
         # Check if arrival_day starts with '4' and has 2 digits
-        if len(arrival_day) == 2 and arrival_day.startswith('4'):
-            arrival_day = '1' + arrival_day[1]  # Change the first digit to '1'
-    
-        arrival_day = int(arrival_day)
+        if arrival_day >= 10 and arrival_day/10 == 4:
+            arrival_day -= 30  # Change the first digit to 1
         
         if pub_date.day >= arrival_day:
             arrival_date = pub_date.replace(day=arrival_day)
         if pub_date.day < arrival_day:
             if pub_date.month == 1:
-                arrival_date = pub_date.replace(month=12, year = pub_date.year-1)
+                arrival_date = pub_date.replace(day=arrival_day, month=12, year=pub_date.year-1)
             else:
-                arrival_date = pub_date.replace(month=pub_date.month-1)
+                arrival_date = pub_date.replace(day=arrival_day, month=pub_date.month-1)
 
         ret = {'status': 0, 'value': arrival_date.strftime('%Y-%m-%d')}
     except Exception as e:
         ret = {'status': -1, 'message': str(e)}
 
     return ret
-    # return jsonify(ret)
 
 
-# @app.route("/api/get_departure_date", methods=['POST'])
 def get_departure_date(params):
-    # jsonp = request.get_json()
-    # params = jsonp["parameters_by_position"]
     pub_date = params[0]
     departure_date = params[1]
+    arrival_date = params[2]
 
     pub_date = compose_date(int(pub_date))
 
@@ -100,16 +89,15 @@ def get_departure_date(params):
     departure_date = departure_date.lower().strip()
 
     # Replace common OCR variants of '1er' with '1'
-    departure_date = re.sub(r'\b[ftl](?:er|eme|e)?\b', '1', departure_date)  # e.g. "fer", "ter", "ler"
+    departure_date = re.sub(r'\b[14ftl](?:[eo]r|eme|e)?\b', '1', departure_date)  # e.g. "fer", "ter", "ler"
 
     # Replace '&' with '8'
     departure_date = re.sub(r'\s*&\s*', '8 ', departure_date)
 
     # Enhanced regex to match "1er juil", "15 avr.", etc.
-    match = re.search(r'\b(?:le\s+)?(\d{1,2})(?:er|eme|e)?[.,]?\s+([a-zA-Zéèêàùûôçîïëœ.]+)', departure_date)
+    match = re.search(r'\b(?:le\s+)?(\d{1,2})(?:[eo]r|eme|e)?[.,]?\s+([a-zA-Zéèêàùûôçîïëœ.]+)', departure_date)
     if not match:
         return {'status': -1, 'message': f"Unable to parse date from string: {departure_date}", 'value': departure_date}
-        # return jsonify({'status': -1, 'message': f"Unable to parse date from string: {departure_date}"})
 
     day = match.group(1)
     # Check if day starts with '4' and has 2 digits
@@ -124,13 +112,16 @@ def get_departure_date(params):
         month_num = french_months[corrected_month]
     # Step 2: "courant" or OCR variants
     elif get_close_matches(raw_monthish, fuzzy_cour_variants, n=1, cutoff=0.7):
-        month_num = pub_date.month
+        try:
+            arrival_date = datetime.strptime(arrival_date, "%Y-%m-%d")
+        except Exception as e:
+            return {'status': -1, 'message': f"Could not recognize the month from: {arrival_date}", 'value': raw_monthish}
+        month_num = arrival_date.month
     # Step 3: Fuzzy match against full normalized months
     else:
         close = get_close_matches(raw_monthish, normalized_months.keys(), n=1, cutoff=0.6)
         if not close:
             return {'status': -1, 'message': f"Could not recognize the month from: {raw_monthish}", 'value': raw_monthish}
-            # return jsonify({'status': -1, 'message': f"Could not recognize the month from: {raw_monthish}"})
         _, month_num = normalized_months[close[0]]
 
     try:
@@ -143,13 +134,9 @@ def get_departure_date(params):
         ret = {'status': -1, 'message': str(e)}
 
     return ret
-    # return jsonify(ret)
 
 
-# @app.route("/api/get_duration_value", methods=['POST'])
 def get_duration_value(params):
-    # jsonp = request.get_json()
-    # params = jsonp["parameters_by_position"]
     departure_date = params[0]
     arrival_date = params[1]
 
@@ -162,13 +149,9 @@ def get_duration_value(params):
         ret = {'status': -1, 'message': str(e)}
 
     return ret
-    # return jsonify(ret)
 
 
-# @app.route("/api/get_quarantine", methods=['POST'])
 def get_quarantine(params):
-    # jsonp = request.get_json()
-    # params = jsonp["parameters_by_position"]
     arrivees_text = params[0]
 
     # Normalize input
@@ -193,13 +176,9 @@ def get_quarantine(params):
         ret = {'status': -1, 'message': str(e)}
 
     return ret
-    # return jsonify(ret)
 
 
-# @app.route("/api/get_port_of_call_list", methods=['POST'])
 def get_port_of_call_list(params):
-    # jsonp = request.get_json()
-    # params = jsonp["parameters_by_position"]
     pub_date_str = params[0]
     first_departure_date_str = params[1]
     extracted_text = params[2]
@@ -210,7 +189,6 @@ def get_port_of_call_list(params):
         first_date = datetime.strptime(first_departure_date_str.strip(), "%Y-%m-%d")
     except Exception as e:
         return {'status': -1, 'message': f"Invalid first_departure_date_str: {e}", 'value': first_departure_date_str}
-        # return jsonify({'status': -1, 'message': f"Invalid first_departure_date_str: {e}"})
 
     french_months = {
         "janvier": 1, "février": 2, "mars": 3, "avril": 4,
@@ -226,7 +204,7 @@ def get_port_of_call_list(params):
     }
 
     fuzzy_cour_variants = ["cour", "courr", "courant", "cpurant", "c0ur", "coiir", "coun", "coue"]
-    dito_variants = ['dito', 'ditto', 'dite', 'd1to', 'dlto', 'dlt0', 'dilo', 'dlte']
+    dito_variants = ['dito', 'ditto', 'dite', 'd1to', 'dlto', 'dlt0', 'dilo', 'dlte', 'dit']
 
     def normalize(text):
         accents = {
@@ -258,7 +236,7 @@ def get_port_of_call_list(params):
         part = part.lower().strip()
     
         # Replace common OCR variants of '1er' with '1'
-        part = re.sub(r'\b[ftl](?:er|eme|e)?\b', '1', part)  # e.g. "fer", "ter", "ler"
+        part = re.sub(r'\b[14ftl](?:[eo]r|eme|e)?\b', '1', part)  # e.g. "fer", "ter", "ler"
 
         # Replace '&' with '8'
         part = re.sub(r'\s*&\s*', '8 ', part)
@@ -288,7 +266,6 @@ def get_port_of_call_list(params):
                     close = get_close_matches(norm_month, normalized_months.keys(), n=1, cutoff=0.6)
                     if not close:
                         return {'status': -1, 'message': f"Unrecognized month in part: {raw_month}", 'value': raw_month}
-                        # return jsonify({'status': -1, 'message': f"Unrecognized month in part: {raw_month}"})
                     _, month = normalized_months[close[0]]
             else:
                 # No month string at all — if it's the first entry, fall back to first_departure_date
@@ -307,10 +284,8 @@ def get_port_of_call_list(params):
                 })
             except Exception as e:
                 return {'status': -1, 'message': str(e)}
-                # return jsonify({'status': -1, 'message': str(e)})
 
     return {'status': 0, 'value': results}
-    # return jsonify({'status': 0, 'value': results})
 
 
 def compose_date(date_in_ms: int) -> datetime:
@@ -338,7 +313,7 @@ def extract_number_from_ocr_string(ocr_str: str) -> int:
     ocr_str = ocr_str.lower().strip()
     
     # Replace common OCR variants of '1er' with '1'
-    ocr_str = re.sub(r'\b[ftl]er\b', '1', ocr_str)  # e.g. "fer", "ter", "ler"
+    ocr_str = re.sub(r'\b[14ftl][eo]r\b', '1', ocr_str)  # e.g. "fer", "ter", "ler"
 
     # Replace '&' with '8' 
     ocr_str = re.sub(r'\s*&\s*', '8 ', ocr_str)
@@ -349,8 +324,4 @@ def extract_number_from_ocr_string(ocr_str: str) -> int:
         return int(match.group())
     else:
         raise ValueError(f"No day number found in: '{ocr_str}'")
-
-
-
-# if __name__ == "__main__":
-#     app.run(debug=True)
+        return -1
