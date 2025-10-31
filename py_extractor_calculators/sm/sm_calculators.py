@@ -1,7 +1,6 @@
 from datetime import datetime, timedelta
 import re
-from difflib import get_close_matches
-from difflib import SequenceMatcher
+from difflib import get_close_matches, SequenceMatcher
 
 
 def get_arrival_date_from_publication_date(params):
