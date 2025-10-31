@@ -288,6 +288,26 @@ def get_port_of_call_list(params):
     return {'status': 0, 'value': results}
 
 
+def add_consignee_to_cargo_list(params):
+    temp_cargo_list = params[0]
+    cargo_consignee = params[1]
+
+    try:
+        # Iterate through each cargo_list item
+        if 'cargo_list' in temp_cargo_list and isinstance(temp_cargo_list['cargo_list'], list):
+            for item in temp_cargo_list['cargo_list']:
+                # Add the new field at the same level as 'cargo'
+                item['cargo_merchant_name'] = cargo_consignee
+
+        ret = {'status': 0, 'value': temp_cargo_list}
+
+    except Exception as e:
+        ret = {'status': -1, 'message': str(e)}
+
+    return ret
+
+
+
 def compose_date(date_in_ms: int) -> datetime:
     
     # Convert milliseconds to seconds
