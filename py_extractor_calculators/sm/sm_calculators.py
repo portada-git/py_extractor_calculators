@@ -292,12 +292,8 @@ def add_consignee_to_cargo_list(params):
     cargo_consignee = params[1]
 
     try:
-        # Iterate through each cargo_list item
-        if 'cargo_list' in temp_cargo_list and isinstance(temp_cargo_list['cargo_list'], list):
-            for item in temp_cargo_list['cargo_list']:
-                # Add the new field at the same level as 'cargo'
-                item['cargo_merchant_name'] = cargo_consignee
-
+        for item in temp_cargo_list:
+            item['cargo_merchant_name'] = cargo_consignee
         ret = {'status': 0, 'value': temp_cargo_list}
 
     except Exception as e:
