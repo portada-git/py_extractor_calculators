@@ -292,15 +292,24 @@ def add_consignee_to_cargo_list(params):
     cargo_consignee = params[1]
 
     try:
+        # Remove "pour", "p", "paur", or similar variants at the beginning (case-insensitive)
+        cargo_consignee = re.sub(
+            r'^(?:\.|\b)\s*(?:p[oe]?[ua]?r|p(?:\.|\b)|[oe][ua]r)[.,:;\s]+',
+            '',
+            cargo_consignee.strip(),
+            flags=re.IGNORECASE
+        )
+
+        # Add sanitized consignee name to each cargo item
         for item in temp_cargo_list:
             item['cargo_merchant_name'] = cargo_consignee
+
         ret = {'status': 0, 'value': temp_cargo_list}
 
     except Exception as e:
         ret = {'status': -1, 'message': str(e)}
 
     return ret
-
 
 
 def compose_date(date_in_ms: int) -> datetime:
