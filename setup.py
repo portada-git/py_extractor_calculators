@@ -1,7 +1,7 @@
 from setuptools import setup
 
 setup(name='py_extractor_calculators',
-    version='0.0.6',
+    version='0.0.7',
     description='....... for PortADa project',
     author='PortADa team',
     author_email='jcbportada@gmail.com',
